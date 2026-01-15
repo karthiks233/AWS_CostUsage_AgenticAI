@@ -1,0 +1,6 @@
+google-adk
+boto3
+dotenv
+greenlet
+aiosqlite
+pydantic  
