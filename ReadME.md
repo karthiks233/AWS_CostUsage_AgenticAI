@@ -1,47 +1,111 @@
-## Agentic Cloud Cost Optimizer
+# AWS Agentic Cloud Cost Optimizer
 
-# Objective
+An AI-powered CLI agent that lets you query your **AWS cloud spend in natural language**. Built with Google ADK and Gemini 2.5 Flash, backed by the AWS Cost Explorer API, with persistent conversation sessions via SQLite.
 
-To build an agentic cloud cost optimizer using Google's Generative AI SDK (GenAI SDK) and AWS Cost Explorer API.
+## Demo
 
-# Features
+```
+You: What was the total cost of ECR between August 2025 and December 2025?
 
-Here, we will be using Google's Generative AI SDK (GenAI SDK) to build an agentic cloud cost optimizer. The features of this application are as follows:
+Agent: Let me calculate the total cost for Amazon ECR for you.
 
-        1. Retrieve AWS cost and usage data for a specific time period.
-        2. Calculate the total cost for a specific service. 
+  • August 2025:    $0.000
+  • September 2025: $0.000
+  • October 2025:   $0.050
+  • November 2025:  $0.378
+  • December 2025:  $0.613
 
-# Setup
+Total cost for ECR (Aug–Dec 2025): $1.04
+```
 
-        1. Install the required packages from requirements.txt
-        2. Set up the environment variables from .env file
-        3. Run the application.
+## Architecture
 
-# Usage
+```
+┌─────────────────────────────────────────────────────┐
+│                    CLI (agent.py)                    │
+│                                                      │
+│   User Input ──► Google ADK Agent (Gemini 2.5)      │
+│                         │                            │
+│              ┌──────────▼──────────┐                 │
+│              │  Tool: get_cost_and │                 │
+│              │  _usage()           │                 │
+│              └──────────┬──────────┘                 │
+│                         │                            │
+│              AWS Cost Explorer API                   │
+│              (boto3, grouped by SERVICE)             │
+│                                                      │
+│   Persistent session state ──► SQLite (aiosqlite)   │
+└─────────────────────────────────────────────────────┘
+```
 
-        1. Run the application.
-        2. Enter the start and end dates for the data you want to retrieve.
-        3. Enter the service name for which you want to calculate the total cost.
-        4. The application will return the total cost for the specified service.
+## Tech Stack
 
-# Example
+| Component | Technology |
+|---|---|
+| AI Agent Framework | Google ADK (`google-adk`) |
+| LLM | Gemini 2.5 Flash |
+| AWS Integration | boto3 (Cost Explorer API) |
+| Session Persistence | SQLite via `aiosqlite` |
+| Runtime | Python 3.11+ (asyncio) |
 
-You: what was the total cost of ECR between August 2025 and December 2025?
+## Repository Structure
 
-Agent: Let me calculate the total cost for Amazon EC2 Container Registry (ECR) for you.
+```
+.
+├── agent.py          # Agent setup, session management, conversation loop
+├── costAnalyser.py   # AWS Cost Explorer API tool (used by the agent)
+├── requirements.txt  # Python dependencies
+└── .env_copy         # Environment variable template
+```
 
-*   August 2025: 0 USD
-*   September 2025: 0 USD
-*   October 2025: 0.049643899 USD
-*   November 2025: 0.378070744 USD
-*   December 2025: 0.6131974713 USD
+## Setup
 
-The total cost for Amazon EC2 Container Registry (ECR) from August 2025 to December 2025 is **1.0409121143 USD**.
+### 1. Clone and install dependencies
 
-        
+```bash
+git clone https://github.com/karthiks233/AWS_CostUsage_AgenticAI.git
+cd AWS_CostUsage_AgenticAI
+pip install -r requirements.txt
+```
 
-# License
+### 2. Configure environment variables
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+```bash
+cp .env_copy .env
+```
 
-       
+Edit `.env` with your credentials:
+
+| Variable | Description |
+|---|---|
+| `GOOGLE_API_KEY` | Google AI Studio API key ([get one here](https://aistudio.google.com/app/apikey)) |
+| `AWS_ACCESS_KEY_ID` | AWS IAM access key |
+| `AWS_SECRET_ACCESS_KEY` | AWS IAM secret key |
+| `AWS_DEFAULT_REGION` | AWS region (e.g. `us-east-1`) |
+
+The IAM user requires the `ce:GetCostAndUsage` permission.
+
+### 3. Run the agent
+
+```bash
+python agent.py
+```
+
+## Example Queries
+
+```
+What was my total AWS spend in January 2025?
+Which service cost the most in Q3 2025?
+What was the total cost of EC2 between March and June 2025?
+Compare my S3 costs in November vs December 2025.
+```
+
+## How It Works
+
+1. **`costAnalyser.py`** defines a `get_cost_and_usage()` function that calls AWS Cost Explorer, grouped by service with monthly granularity.
+2. **`agent.py`** registers this function as a tool with the Google ADK Agent, which decides autonomously when to call it based on the user's natural-language question.
+3. Sessions are stored in a local SQLite database (`agent_sessions.db`), so conversation history persists across runs.
+
+## License
+
+MIT License — see [LICENSE](LICENSE) for details.
